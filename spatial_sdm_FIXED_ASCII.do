@@ -121,11 +121,14 @@ mata:
 end
 
 * Dynamic SDM: lagged outcome, spatial outcome, and spatial lag of stru_sd.
+* First-run setting: 100 MC draws for effect SEs; use 500 for final reporting.
 set seed 20261014
+display as result "Starting xsmle; the effect-SE simulation can take several minutes."
 xsmle abs_gap demo_sd stru_sd `controls' `py', ///
     wmat(W_INV2) model(sdm) fe type(ind) dlag(1) ///
-    durbin(stru_sd) effects vceeffects(sim, nsim(500)) ///
-    nolog iterate(500)
+    durbin(stru_sd) effects vceeffects(sim, nsim(100)) ///
+    iterate(500)
+display as result "xsmle and simulated effect SEs finished."
 count if e(sample)
 if r(N)!=4448 {
     display as error "Estimation sample is not 4448; inspect year counts."
