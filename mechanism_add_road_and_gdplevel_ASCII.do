@@ -103,6 +103,7 @@ local yearfe ""
 forvalues j=2/16 {
     local yearfe "`yearfe' _yr`j'"
 }
+set seed 20261015
 xthreg abs_gap demo ln_retail ln_pc_stu ln_pc_lib ln_pc_hosp ///
     ln_pc_mobile L1_gdppc_10k `yearfe', ///
     rx(L1_stru) qx(L1_gdppc_10k) ///
