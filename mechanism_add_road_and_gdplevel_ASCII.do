@@ -96,16 +96,16 @@ esttab ROAD_MOD using "$OUT/road_moderation_core.csv", replace csv ///
     stats(N P_demo_inter P_stru_inter, fmt(0 4 4))
 
 * THRESHOLD 2 CANDIDATE: previous-year real per-capita GDP level.
-* Like your retail xthreg model, both demo and L1_stru may change slope.
+* Only L1_stru changes slope; demo stays in the common linear component.
 * xthreg's own bootstrap p value is the decision rule for a threshold.
 quietly tabulate year, generate(_yr)
 local yearfe ""
 forvalues j=2/16 {
     local yearfe "`yearfe' _yr`j'"
 }
-xthreg abs_gap ln_retail ln_pc_stu ln_pc_lib ln_pc_hosp ///
+xthreg abs_gap demo ln_retail ln_pc_stu ln_pc_lib ln_pc_hosp ///
     ln_pc_mobile L1_gdppc_10k `yearfe', ///
-    rx(demo L1_stru) qx(L1_gdppc_10k) ///
+    rx(L1_stru) qx(L1_gdppc_10k) ///
     thnum(1) trim(.05) grid(200) bs(1000) ///
     nobslog vce(cluster id)
 matrix TH=e(Thrss)
@@ -119,28 +119,23 @@ display as result "xthreg bootstrap threshold p = " %7.4f `p_boot'
 
 * Conditional slopes after the selected cut; their p values are descriptive.
 gen byte high=(L1_gdppc_10k>`cut')
-gen double demo_low=demo*(high==0)
-gen double demo_high=demo*(high==1)
 gen double stru_low=L1_stru*(high==0)
 gen double stru_high=L1_stru*(high==1)
-xtreg abs_gap ln_retail ln_pc_stu ln_pc_lib ln_pc_hosp ///
-    ln_pc_mobile L1_gdppc_10k demo_low demo_high ///
+xtreg abs_gap demo ln_retail ln_pc_stu ln_pc_lib ln_pc_hosp ///
+    ln_pc_mobile L1_gdppc_10k ///
     stru_low stru_high i.year, fe vce(cluster id)
-quietly test demo_low=demo_high
-local p_demo_diff=r(p)
 quietly test stru_low=stru_high
 local p_stru_diff=r(p)
 estadd scalar Cut=`cut'
 estadd scalar Bootstrap_p=`p_boot'
-estadd scalar P_demo_diff=`p_demo_diff'
 estadd scalar P_stru_diff=`p_stru_diff'
 estimates store GDP_THRESHOLD
 esttab GDP_THRESHOLD using "$OUT/gdp_threshold_full.rtf", replace rtf ///
     b(6) se(6) star(* 0.10 ** 0.05 *** 0.01) ///
-    stats(N Cut Bootstrap_p P_demo_diff P_stru_diff, fmt(0 5 4 4 4))
+    stats(N Cut Bootstrap_p P_stru_diff, fmt(0 5 4 4))
 esttab GDP_THRESHOLD using "$OUT/gdp_threshold_core.csv", replace csv ///
-    keep(demo_low demo_high stru_low stru_high) ///
+    keep(demo stru_low stru_high) ///
     b(6) se(6) star(* 0.10 ** 0.05 *** 0.01) ///
-    stats(N Cut Bootstrap_p P_demo_diff P_stru_diff, fmt(0 5 4 4 4))
+    stats(N Cut Bootstrap_p P_stru_diff, fmt(0 5 4 4))
 display as result "Output folder: $OUT"
 log close
